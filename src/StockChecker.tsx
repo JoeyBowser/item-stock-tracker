@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot
+} from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
@@ -41,20 +49,28 @@ export default function StockChecker() {
   useEffect(() => {
     const checkStock = async () => {
       const results: { name: string; time: string }[] = [];
-
+    
       for (const item of itemsToWatch) {
         try {
-          const res = await fetch(item.apiUrl);
+          const res = await fetch(`/api/fetch-target?apiUrl=${encodeURIComponent(item.apiUrl)}`);
+    
+          const contentType = res.headers.get("content-type") || "";
+          if (!contentType.includes("application/json")) {
+            const text = await res.text(); // get raw text response
+            console.error(`Non-JSON response for ${item.name}:`, text); // debug
+            throw new Error("Invalid response type");
+          }
+    
           const data = await res.json();
           const fulfillment = data?.data?.product?.fulfillment;
-
+    
           const inStore = fulfillment?.store_options?.some(
             (s: any) => s?.location_available_to_promise_quantity > 0
           );
           const ship =
             fulfillment?.shipping_options?.availability_status === "IN_STOCK" &&
             fulfillment?.shipping_options?.available_to_promise_quantity > 0;
-
+    
           if (inStore || ship) {
             const timestamp = new Date().toLocaleTimeString();
             results.push({ name: item.name, time: timestamp });
@@ -65,9 +81,10 @@ export default function StockChecker() {
           console.error("Error checking stock for", item.name, e);
         }
       }
-
+    
       setInStockItems(results);
     };
+    
 
     if (itemsToWatch.length > 0) {
       checkStock();
