@@ -3,12 +3,12 @@ import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot }
 import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCEfYtQHssk3nJMAsIrbY9R6rNL_sleQrY",
+  authDomain: "itemstocktracker.firebaseapp.com",
+  projectId: "itemstocktracker",
+  storageBucket: "itemstocktracker.firebasestorage.app",
+  messagingSenderId: "682830413118",
+  appId: "1:682830413118:web:ecc3c347487ef2d2b4406f"
 };
 
 const app = initializeApp(firebaseConfig);
