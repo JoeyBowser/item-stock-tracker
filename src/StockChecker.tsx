@@ -1,17 +1,28 @@
 import { useEffect, useState } from "react";
+import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, onSnapshot } from "firebase/firestore";
+import { initializeApp } from "firebase/app";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 interface Item {
+  id?: string;
   name: string;
   productUrl: string;
   apiUrl: string;
 }
 
 export default function StockChecker() {
-  const [itemsToWatch, setItemsToWatch] = useState<Item[]>(() => {
-    const stored = localStorage.getItem("itemsToWatch");
-    return stored ? JSON.parse(stored) : [];
-  });
-
+  const [itemsToWatch, setItemsToWatch] = useState<Item[]>([]);
   const [inStockItems, setInStockItems] = useState<{ name: string; time: string }[]>([]);
   const [newItem, setNewItem] = useState<{ name: string; productUrl: string; apiUrl: string }>({
     name: "",
@@ -20,8 +31,12 @@ export default function StockChecker() {
   });
 
   useEffect(() => {
-    localStorage.setItem("itemsToWatch", JSON.stringify(itemsToWatch));
-  }, [itemsToWatch]);
+    const unsub = onSnapshot(collection(db, "items"), (snapshot) => {
+      const items: Item[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Item));
+      setItemsToWatch(items);
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const checkStock = async () => {
@@ -61,15 +76,17 @@ export default function StockChecker() {
     }
   }, [itemsToWatch]);
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItem.name && newItem.apiUrl && newItem.productUrl) {
-      setItemsToWatch((prev) => [...prev, newItem]);
+      await addDoc(collection(db, "items"), newItem);
       setNewItem({ name: "", productUrl: "", apiUrl: "" });
     }
   };
 
-  const handleRemoveItem = (name: string) => {
-    setItemsToWatch((prev) => prev.filter((item) => item.name !== name));
+  const handleRemoveItem = async (id?: string) => {
+    if (id) {
+      await deleteDoc(doc(db, "items", id));
+    }
   };
 
   return (
@@ -110,11 +127,11 @@ export default function StockChecker() {
         ) : (
           <ul className="space-y-1">
             {itemsToWatch.map((item, index) => (
-              <li key={index} className="flex justify-between items-center">
+              <li key={item.id || index} className="flex justify-between items-center">
                 <span>{item.name}</span>
                 <button
                   className="bg-red-600 text-white px-3 py-1 rounded text-sm"
-                  onClick={() => handleRemoveItem(item.name)}
+                  onClick={() => handleRemoveItem(item.id)}
                 >
                   Remove
                 </button>
